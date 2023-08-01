@@ -1,22 +1,44 @@
 // components/Login.js
 "use client"
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { setUserAndToken } from '../app/redux/features/authSlice';
 import axios from 'axios';
+import { redirect } from 'next/dist/server/api-utils';
+import { Allerta } from 'next/font/google';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
+  const some = useSelector((state) => state.auth); 
 
-  const loginManage = (e) => {
-    e.preventDefault();
-    fetch('https://iboxsmartlockers.com/api/v1/auth/jwt-auth')
-    .then(response => response.json())
-    .then(data => console.log(data));
+  const loginManage = async (e) => {
+    try {
+      e.preventDefault();
+      const response = await axios.post("/api/auth");
+      const tokenAuth = response.data.data.acces_token;
+      const responseAuthService = await axios.post("/api/authService", {
+        username,
+        password,
+        tokenAuth,
+      });
+      console.log(username, password, tokenAuth)     
+      const tokenService = responseAuthService.data.data.acces_token;
+      dispatch(setUserAndToken({user: username, token: tokenService}))
+      redirect("/timeLine");
+    } catch (error) {
+      console.log('Username or Password incorrect')
+    }
   }
   
+  useEffect(() => {
+    console.log("", some);
+  },[some])
+
+  useEffect(() =>{
+    dispatch(setUserAndToken({user: username, token: password}))
+  }, [username, password, dispatch])
 
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8 mt-20">
@@ -70,6 +92,7 @@ const Login = () => {
           <button
             type="submit"
             className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+            onClick={loginManage}
           >
            Login
           </button>
